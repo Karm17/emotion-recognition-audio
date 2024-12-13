@@ -1,14 +1,18 @@
 import streamlit as st
 import librosa
 import numpy as np
+import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import LabelEncoder
 
-# Load pre-trained model
-model = load_model("model_lstm.h5")
+# Function to load a model
+def load_selected_model(model_choice):
+    if model_choice == "LSTM":
+        return load_model("model_lstm.h5")
+    elif model_choice == "GRU":
+        return load_model("model_gru.h5")
 
-
-# Manually map the emotion labels if the label_classes.npy is missing
+# Emotion labels
 dict_emotion = {
     '01': 'neutral', '02': 'calm', '03': 'happy', '04': 'sad',
     '05': 'angry', '06': 'fearful', '07': 'disgust', '08': 'surprised'
@@ -33,6 +37,12 @@ def extract_features(file_path):
 # Streamlit UI elements
 st.title("Emotion Recognition from Audio")
 
+# Allow the user to select between LSTM and GRU models
+model_choice = st.radio("Select Model", ("LSTM", "GRU"))
+
+# Load the selected model
+model = load_selected_model(model_choice)
+
 # File uploader
 audio_file = st.file_uploader("Upload Audio File", type=["wav"])
 
@@ -53,10 +63,25 @@ if audio_file is not None:
         emotion_probs = model.predict(features)
         predicted_class = np.argmax(emotion_probs, axis=1)[0]
 
-        # Use label_encoder to get the predicted emotion
-        predicted_emotion = label_encoder.inverse_transform([predicted_class])[0]
+        # Ensure the predicted class is valid
+        if predicted_class < len(label_encoder.classes_):
+            predicted_emotion = label_encoder.inverse_transform([predicted_class])[0]
+        else:
+            st.error("Invalid predicted class.")
+            predicted_emotion = "Unknown"
 
         # Display the result
         st.subheader(f"Predicted Emotion: {predicted_emotion}")
+        
+        # Show the accuracy of the model
+        accuracy = np.max(emotion_probs) * 100  # Convert to percentage
+        st.write(f"Prediction Confidence: {accuracy:.2f}%")
+
+        # Display the accuracy as a bar chart
+        fig, ax = plt.subplots()
+        ax.bar(["Accuracy"], [accuracy])  # Display only accuracy
+        ax.set_ylabel('Prediction Confidence (%)')
+        ax.set_title(f"Prediction Confidence for {model_choice} Model")
+        st.pyplot(fig)
     else:
         st.error("Failed to extract features from the audio file.")
