@@ -5,7 +5,8 @@ from tensorflow.keras.models import load_model
 from sklearn.preprocessing import LabelEncoder
 
 # Load pre-trained model
-model = load_model("C:/sound_emotion_detection/model_lstm.h5")
+model = load_model("model_lstm.h5")
+
 
 # Manually map the emotion labels if the label_classes.npy is missing
 dict_emotion = {
